@@ -1,6 +1,11 @@
-import { AnchorProvider, Program, web3, BN, useWallet } from '@project-serum/anchor'
-import { TOKEN_PROGRAM_ID, Token, MintLayout, getOrCreateAssociatedTokenAccoun, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } from '@solana/spl-token';
-import { Connection, PublicKey, Transaction, SystemProgram } from '@solana/web3.js';
+import { AnchorProvider, Program, web3, BN} from '@project-serum/anchor'
+import { useWallet, WalletContextState } from '@solana/wallet-adapter-react'
+import { 
+    TOKEN_PROGRAM_ID, 
+    getAssociatedTokenAddress, 
+    createAssociatedTokenAccountInstruction 
+} from '@solana/spl-token';
+import { Connection, PublicKey} from '@solana/web3.js';
 
 const stepTokenMint = "StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT";
 const xstepTokenMint = "xStpgUCss9piqeFUk2iLVcvJEGhAdJxJQuwLkXP555G";
@@ -75,97 +80,121 @@ export async function get_token_price(){
     return { stepPrice, xstepPrice };
 }
 
-export async function stakeStep(program:Program, amount:Number, wallet: useWallet, connection:Connection){
-    const [tokenVaultPda, nonce] = await PublicKey.findProgramAddress(
-        [tokenMint.toBuffer()],
-        programId
-      );
-    const x_account = await getWalletTokenAccounts(wallet.publicKey, xstepTokenMint, connection);
-    console.log(x_account)
-    if(!x_account){
-        console.log("initialize xstep account")
-        await initializeStep(program, wallet, connection)
-        if( !await getWalletTokenAccounts(wallet.publicKey, xstepTokenMint, connection)){
-            console.log("failed to initialize xstep account")
+export async function stakeStep(program:Program, amount:number, wallet: WalletContextState, connection:Connection){
+    if (wallet.publicKey) {
+        const publicKeyString = wallet.publicKey.toBase58();
+        const [tokenVaultPda, nonce] = await PublicKey.findProgramAddress(
+            [tokenMint.toBuffer()],
+            programId
+        );
+        const x_account = await getWalletTokenAccounts(publicKeyString, xstepTokenMint, connection);
+        console.log(x_account)
+        if(!x_account){
+            console.log("initialize xstep account")
+            await initializeStep(program, wallet)
+            if( !await getWalletTokenAccounts(publicKeyString, xstepTokenMint, connection)){
+                console.log("failed to initialize xstep account")
+                return false
+            }
+        }
+        console.log(await getWalletTokenAccounts(publicKeyString, xstepTokenMint, connection))
+        const tokenFromAccount = await getWalletTokenAccounts(publicKeyString, stepTokenMint, connection);
+        const xTokenToAccount = await getWalletTokenAccounts(publicKeyString, xstepTokenMint, connection);
+        // If either of these are false, then the user doesn't have an account for the token
+        if (!tokenFromAccount || !xTokenToAccount) {
+            console.log("no account")
+            return false;
+        }
+
+        const stepAmount = new BN(amount * Math.pow(10, 9))
+        try{
+            const sig = await program.methods
+            .stake(new BN(nonce), stepAmount)
+            .accounts({
+                tokenMint,
+                xTokenMint,
+                tokenFrom: tokenFromAccount,
+                tokenFromAuthority: publicKeyString,
+                tokenVault:new PublicKey(tokenVaultPda),
+                xTokenTo: xTokenToAccount,
+                tokenProgram: TOKEN_PROGRAM_ID,
+            })
+            .rpc();
+            return sig;
+        }
+        catch(err){
+            console.log(err)
             return false
         }
     }
-    console.log(await getWalletTokenAccounts(wallet.publicKey, xstepTokenMint, connection))
-
-    const stepAmount = new BN(amount * Math.pow(10, 9))
-    try{
-        const sig = await program.methods
-        .stake(new BN(nonce), stepAmount)
-        .accounts({
-            tokenMint,
-            xTokenMint,
-            tokenFrom: await getWalletTokenAccounts(wallet.publicKey, stepTokenMint, connection),
-            tokenFromAuthority: wallet.publicKey,
-            tokenVault:new PublicKey(tokenVaultPda),
-            xTokenTo: await getWalletTokenAccounts(wallet.publicKey, xstepTokenMint, connection),
-            tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .rpc();
-        return sig;
-    }
-    catch(err){
-        console.log(err)
-        return false
-    }
 }
 
-export async function unStakeStep(program:Program, amount:Number, wallet: useWallet, connection:Connection){
-    const [tokenVaultPda, nonce] = await PublicKey.findProgramAddress(
-        [tokenMint.toBuffer()],
-        programId
-      );
-    const stepAmount = new BN(amount * Math.pow(10, 9))
-    try{
-        const sig = await program.methods
-        .unstake(new BN(nonce), stepAmount)
-        .accounts({
-            tokenMint,
-            xTokenMint,
-            xTokenFrom: await getWalletTokenAccounts(wallet.publicKey, xstepTokenMint, connection),
-            xTokenFromAuthority: wallet.publicKey,
-            tokenVault:new PublicKey(tokenVaultPda),
-            tokenTo: await getWalletTokenAccounts(wallet.publicKey, stepTokenMint, connection),
-            tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .rpc();
-        return sig;
-    }
-    catch(err){
-        console.log(err)
-        return false
-    }
-}
-
-export async function initializeStep(program:Program, wallet: useWallet, connection:Connection){
-    try{
+export async function unStakeStep(program:Program, amount:number, wallet: WalletContextState, connection:Connection){
+    if (wallet.publicKey) {
         const [tokenVaultPda, nonce] = await PublicKey.findProgramAddress(
             [tokenMint.toBuffer()],
-            program.programId
-            );
-        const initializer = wallet.publicKey
-        const systemProgram = web3.SystemProgram.programId
-        const tokenProgram = TOKEN_PROGRAM_ID
-        const rent = web3.SYSVAR_RENT_PUBKEY
-// ...log other parameters similarly
+            programId
+        );
+        const publicKeyString = wallet.publicKey.toBase58();
+        const stepAmount = new BN(amount * Math.pow(10, 9))
+        const tokenFromAccount = await getWalletTokenAccounts(publicKeyString, stepTokenMint, connection);
+        const xTokenToAccount = await getWalletTokenAccounts(publicKeyString, xstepTokenMint, connection);
+        // If either of these are false, then the user doesn't have an account for the token
+        if (!tokenFromAccount || !xTokenToAccount) {
+            console.log("no account")
+            return false;
+        }
+        try{
+            const sig = await program.methods
+            .unstake(new BN(nonce), stepAmount)
+            .accounts({
+                tokenMint,
+                xTokenMint,
+                xTokenFrom: xTokenToAccount,
+                xTokenFromAuthority: publicKeyString,
+                tokenVault:new PublicKey(tokenVaultPda),
+                tokenTo: tokenFromAccount,
+                tokenProgram: TOKEN_PROGRAM_ID,
+            })
+            .rpc();
+            return sig;
+        }
+        catch(err){
+            console.log(err)
+            return false
+        }
+    }
+}
 
-        const sig = await program.methods
-        .initialize(nonce)
-        .accounts({
-            tokenMint:tokenMint,
-            xTokenMint:(await createMint(xTokenMint, program, wallet)),
-            tokenVault:tokenVaultPda,
-            initializer,
-            systemProgram,
-            tokenProgram,
-            rent,
-        })
-        .rpc()
-        console.log('Initialise successful', sig);
+export async function initializeStep(program:Program, wallet: WalletContextState){
+    try{
+        if(wallet.publicKey){
+            const [tokenVaultPda, nonce] = await PublicKey.findProgramAddress(
+                [tokenMint.toBuffer()],
+                program.programId
+                );
+            const initializer = wallet.publicKey.toBase58()
+            if (!initializer) {
+                console.log("no account")
+                return false;
+            }
+            const systemProgram = web3.SystemProgram.programId
+            const tokenProgram = TOKEN_PROGRAM_ID
+            const rent = web3.SYSVAR_RENT_PUBKEY
+            const sig = await program.methods
+            .initialize(nonce)
+            .accounts({
+                tokenMint:tokenMint,
+                xTokenMint:(await createMint(xTokenMint, program, wallet)),
+                tokenVault:tokenVaultPda,
+                initializer,
+                systemProgram,
+                tokenProgram,
+                rent,
+            })
+            .rpc()
+            console.log('Initialise successful', sig);
+        }
       }
         catch (error) {
             console.error('Initialise failed: ', error);
@@ -175,33 +204,36 @@ export async function initializeStep(program:Program, wallet: useWallet, connect
 async function createMint(
     mintAccount: PublicKey,
     program: Program,
-    wallet: useWallet
+    wallet: WalletContextState
 ) {
-    console.log("Creating mint account....")
-    const connection = program.provider.connection
-    const mintPublicKey = mintAccount
-    const associatedTokenAddress = await getAssociatedTokenAddress(
-        mintPublicKey,
-        wallet.publicKey,
-    )
-    const accountInfo = await connection.getAccountInfo(associatedTokenAddress)
-    if (accountInfo !== null) {
-        console.log("Mint account already exists")
-    }
+    if(wallet.publicKey){
+        console.log("Creating mint account....")
+        const walletString = wallet.publicKey.toBase58()
+        const connection = program.provider.connection
+        const mintPublicKey = mintAccount
+        const associatedTokenAddress = await getAssociatedTokenAddress(
+            mintPublicKey,
+            wallet.publicKey,
+        )
+        const accountInfo = await connection.getAccountInfo(associatedTokenAddress)
+        if (accountInfo !== null) {
+            console.log("Mint account already exists")
+        }
 
-    const transaction = new web3.Transaction().add(
-        createAssociatedTokenAccountInstruction(
-            wallet.publicKey, // Payer of the transaction fees
-            associatedTokenAddress, // Associated token account address to create
-            wallet.publicKey, // Owner of the new account
-            mintPublicKey // Mint for the new account
-          )
-    );
-    try {
-        const signature = await wallet.sendTransaction(transaction, connection);
-        await connection.confirmTransaction(signature, 'processed');
-        return associatedTokenAddress.toBase58();
-      } catch (error) {
-        console.error('Error creating token account:', error);
-      }
+        const transaction = new web3.Transaction().add(
+            createAssociatedTokenAccountInstruction(
+                wallet.publicKey, 
+                associatedTokenAddress, 
+                wallet.publicKey, 
+                mintPublicKey 
+            )
+        );
+        try {
+            const signature = await wallet.sendTransaction(transaction, connection);
+            await connection.confirmTransaction(signature, 'processed');
+            return associatedTokenAddress.toBase58();
+        } catch (error) {
+            console.error('Error creating token account:', error);
+        }
+        }
 }

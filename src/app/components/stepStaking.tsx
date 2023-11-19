@@ -17,7 +17,7 @@ const StepStaking: React.FC<HeaderProps> = ({ company, logo, description }) => {
     <div className="flex flex-col gap-4 w-2/3 max-w-2xl">
         <StakingHeading title="Stake STEP" description="Stake STEP to receive xSTEP" image="/stake.svg" />
         <StakingInformation {...stakingInformation} />
-        <Stake {...footerItems} />
+        <Stake />
     </div>
     );
 };
