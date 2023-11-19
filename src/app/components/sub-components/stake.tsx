@@ -2,23 +2,13 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import idl from "../../lib/step_staking.json"
 import { TokenInput } from './tokenInput';
-import { AnchorProvider, setProvider, Idl, Program, getProvider, web3, BN} from '@project-serum/anchor'
-import { TOKEN_PROGRAM_ID, Token, MintLayout } from '@solana/spl-token';
+import { AnchorProvider, setProvider, Idl, Program} from '@project-serum/anchor'
 import { useWallet, useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
-import { find_tokens, get_token_price, getWalletTokenAccounts, stakeStep, unStakeStep, getPriceFromEvent} from '../../lib/util';
+import { find_tokens, get_token_price, stakeStep, unStakeStep} from '../../lib/util';
 import { PublicKey} from '@solana/web3.js';
-import { publicKey } from '../../../../node_modules/@project-serum/anchor/dist/cjs/utils/index';
 import { toast } from 'react-toastify';
 
-interface provider {
-    provider: AnchorProvider;
-}
-interface Price {
-    stepPerXstepE9: number;
-    stepPerXstep: string;
-  }
-
-const Stake: React.FC<provider> = ({ provider }) => {
+const Stake: React.FC = () => {
     const [tokenState, setTokenState] = useState({
         stake: true,
         stepTokens: 0,
@@ -35,22 +25,23 @@ const Stake: React.FC<provider> = ({ provider }) => {
     const { connection } = useConnection()
     const wallet = useAnchorWallet()
     const pubWallet = useWallet()
-    
-    const newProvider = new AnchorProvider(connection, wallet, {})
-    setProvider(newProvider)
+
 
     const programId = new PublicKey('Stk5NCWomVN3itaFjLu382u9ibb5jMSHEsh6CuhaGjB')
 
     
 
     useEffect(() => {
-        if (pubWallet.publicKey) {
+        if (wallet) {
             loadTokens();
-            const newProvider = getProvider();
+
+            const newProvider = new AnchorProvider(connection, wallet, {})
+            setProvider(newProvider)
+            
             const program = new Program(idl as Idl, programId, newProvider);
             setProgram(program);
         }
-      }, [pubWallet.publicKey]); // Dependency array
+      }, [wallet, connection]); // Dependency array
     
         function handleClick() {
             setTokenState(prevState => ({
@@ -61,7 +52,7 @@ const Stake: React.FC<provider> = ({ provider }) => {
 
 
     async function stake() {
-        if (!pubWallet.connected) {
+        if (!pubWallet.connected|| !program) {
             toast.error('Wallet not connected!');
             return;
         }
@@ -72,7 +63,7 @@ const Stake: React.FC<provider> = ({ provider }) => {
                             <p>Click <strong>CONFIRM</strong> to stake!</p>
                         </div>
                         );
-                    const stake_tx = await stakeStep(program, parseFloat(tokenState.enteredStepAmount), pubWallet,connection,)
+                    const stake_tx = await stakeStep(program, parseFloat(tokenState.enteredStepAmount), pubWallet, connection);
                     if (stake_tx)
                     {
                         toast(
@@ -133,16 +124,19 @@ const Stake: React.FC<provider> = ({ provider }) => {
         }));
     };
     async function loadTokens() {
-        const { stepPrice, xstepPrice } = await get_token_price();
-        const { stepTokensRounded, xstepTokensRounded } = await find_tokens(pubWallet.publicKey);
-        setTokenState(prevState => ({
-            ...prevState,
-            stepPrice: stepPrice,
-            xstepPrice: xstepPrice,
-            stepTokens: parseFloat(stepTokensRounded),
-            xstepTokens: parseFloat(xstepTokensRounded),
-        }));
-    }
+        if (pubWallet.publicKey) { // Check that publicKey is not null
+            const { stepPrice, xstepPrice } = await get_token_price();
+            // Convert the PublicKey to a base58 string if find_tokens expects a string
+            const publicKeyString = pubWallet.publicKey.toBase58();
+            const { stepTokensRounded, xstepTokensRounded } = await find_tokens(publicKeyString);
+            setTokenState(prevState => ({
+                ...prevState,
+                stepPrice: stepPrice,
+                xstepPrice: xstepPrice,
+                stepTokens: stepTokensRounded,
+                xstepTokens: xstepTokensRounded,
+            }));
+    }}
 
 
     const hasEnteredAmount = tokenState.stake
