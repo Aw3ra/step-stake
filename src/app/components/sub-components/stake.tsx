@@ -154,10 +154,7 @@ const Stake: React.FC = () => {
         : 'bg-emerald-600 hover:bg-emerald-700';
 
     const buttonText = !hasEnteredAmount
-        ? 'Enter an Amount'
-        : insufficientFunds
-        ? 'Insufficient Funds'
-        : 'Confirm Stake';
+        ? 'Enter an Amount': insufficientFunds ? 'Insufficient Funds' : tokenState.stake ? 'Confirm Stake' : 'Confirm Unstake';
 
     function handleConfirm(){
         stake();
