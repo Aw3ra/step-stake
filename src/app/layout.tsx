@@ -7,7 +7,6 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'Step Stake',
   description: 'Stake your step, a dApp built by Awera',
-  favicoicon: '/stepCoin.png',
 }
 
 export default function RootLayout({
