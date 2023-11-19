@@ -1,5 +1,5 @@
-import { AnchorProvider, Program, web3, BN} from '@project-serum/anchor'
-import { useWallet, WalletContextState } from '@solana/wallet-adapter-react'
+import { Program, web3, BN} from '@project-serum/anchor'
+import { WalletContextState } from '@solana/wallet-adapter-react'
 import { 
     TOKEN_PROGRAM_ID, 
     getAssociatedTokenAddress, 
@@ -9,24 +9,21 @@ import { Connection, PublicKey} from '@solana/web3.js';
 
 const stepTokenMint = "StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT";
 const xstepTokenMint = "xStpgUCss9piqeFUk2iLVcvJEGhAdJxJQuwLkXP555G";
-
 const tokenMint = new PublicKey("StepAscQoEioFxxWGnh2sLBDFp9d8rvKz2Yp39iDpyT")
 const xTokenMint = new PublicKey("xStpgUCss9piqeFUk2iLVcvJEGhAdJxJQuwLkXP555G")
 const programId = new PublicKey('Stk5NCWomVN3itaFjLu382u9ibb5jMSHEsh6CuhaGjB')
 
-const heliusKey = "7113a622-60ab-4f5d-9afc-020d04c5318b";
+const heliusKey = process.env.NEXT_PUBLIC_HELIUS_KEY;
+console.log(heliusKey)
 
 export async function getWalletTokenAccounts(walletAddress:string, tokenMintAddress:string, connection:Connection) {
   const walletPublicKey = new PublicKey(walletAddress);
   const tokenMintPublicKey = new PublicKey(tokenMintAddress);
-
-  // Fetch the associated token accounts for the wallet and the token mint
   const { value } = await connection.getParsedTokenAccountsByOwner(
     walletPublicKey,
     { mint: tokenMintPublicKey },
     'confirmed'
   );
-    // If a pubkey exists, return it. Else return false
     if (value.length === 0) {
         return false;
     }
@@ -40,7 +37,6 @@ export async function find_tokens(pubkey: string) {
     const token_list = accountData.tokens;
     let stepTokenAmount = 0;
     let xstepTokenAmount = 0;
-    // Go through all the data and find the one with the mint of the step token
     for (let token of token_list) {
         if (token.mint == stepTokenMint) {
             stepTokenAmount = token.amount;
@@ -74,9 +70,7 @@ export async function get_token_price(){
 
     const data = await response.json();
     const stepPrice = data[0].onChainAccountInfo.accountInfo.lamports / 1000000000;
-    // Create a string out of the token price after doing calcs
     const xstepPrice = data[1].onChainAccountInfo.accountInfo.lamports / 1000000000;
-
     return { stepPrice, xstepPrice };
 }
 
@@ -100,7 +94,6 @@ export async function stakeStep(program:Program, amount:number, wallet: WalletCo
         console.log(await getWalletTokenAccounts(publicKeyString, xstepTokenMint, connection))
         const tokenFromAccount = await getWalletTokenAccounts(publicKeyString, stepTokenMint, connection);
         const xTokenToAccount = await getWalletTokenAccounts(publicKeyString, xstepTokenMint, connection);
-        // If either of these are false, then the user doesn't have an account for the token
         if (!tokenFromAccount || !xTokenToAccount) {
             console.log("no account")
             return false;
@@ -139,7 +132,6 @@ export async function unStakeStep(program:Program, amount:number, wallet: Wallet
         const stepAmount = new BN(amount * Math.pow(10, 9))
         const tokenFromAccount = await getWalletTokenAccounts(publicKeyString, stepTokenMint, connection);
         const xTokenToAccount = await getWalletTokenAccounts(publicKeyString, xstepTokenMint, connection);
-        // If either of these are false, then the user doesn't have an account for the token
         if (!tokenFromAccount || !xTokenToAccount) {
             console.log("no account")
             return false;

@@ -21,27 +21,21 @@ const Stake: React.FC = () => {
     const [program, setProgram] = useState<Program>();
     const stepData = { name: 'STEP', balance: tokenState.stepTokens, image: '/stepCoin.png' };
     const xstepData = { name: 'xSTEP', balance: tokenState.xstepTokens, image: '/xstep.svg' };
-
     const { connection } = useConnection()
     const wallet = useAnchorWallet()
     const pubWallet = useWallet()
-
-
     const programId = new PublicKey('Stk5NCWomVN3itaFjLu382u9ibb5jMSHEsh6CuhaGjB')
-
-    
+    const xStepRatio = 0.80469;
 
     useEffect(() => {
         if (wallet) {
             loadTokens();
-
             const newProvider = new AnchorProvider(connection, wallet, {})
             setProvider(newProvider)
-            
             const program = new Program(idl as Idl, programId, newProvider);
             setProgram(program);
         }
-      }, [wallet, connection]); // Dependency array
+      }, [wallet, connection]);
     
         function handleClick() {
             setTokenState(prevState => ({
@@ -49,7 +43,6 @@ const Stake: React.FC = () => {
                 stake: !prevState.stake,
             }));
         }
-
 
     async function stake() {
         if (!pubWallet.connected|| !program) {
@@ -96,22 +89,19 @@ const Stake: React.FC = () => {
                                 <p>Error unstaking.</p>
                             </a>);
                     }
-
                 }
-                // Reload the wallet balances
                 loadTokens();
             }catch (error) {
                 toast.error(`Transaction failed! ${error}`);
             }   
         }
 
-    // Update the state when the input value changes
     const handleStepAmountChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const value = event.target.value;
         setTokenState(prevState => ({
             ...prevState,
             enteredStepAmount: value,
-            enteredXStepAmount: value ? (parseFloat(value) * 0.80469).toFixed(5) : '',
+            enteredXStepAmount: value ? (parseFloat(value) * xStepRatio ).toFixed(5) : '',
         }));
     };
 
@@ -120,13 +110,13 @@ const Stake: React.FC = () => {
         setTokenState(prevState => ({
             ...prevState,
             enteredXStepAmount: value,
-            enteredStepAmount: value ? (parseFloat(value) / 0.80469 ).toFixed(5) : '',
+            enteredStepAmount: value ? (parseFloat(value) / xStepRatio ).toFixed(5) : '',
         }));
     };
+
     async function loadTokens() {
-        if (pubWallet.publicKey) { // Check that publicKey is not null
+        if (pubWallet.publicKey) { 
             const { stepPrice, xstepPrice } = await get_token_price();
-            // Convert the PublicKey to a base58 string if find_tokens expects a string
             const publicKeyString = pubWallet.publicKey.toBase58();
             const { stepTokensRounded, xstepTokensRounded } = await find_tokens(publicKeyString);
             setTokenState(prevState => ({
@@ -138,11 +128,10 @@ const Stake: React.FC = () => {
             }));
     }}
 
-
     const hasEnteredAmount = tokenState.stake
-    ? tokenState.enteredStepAmount.trim() !== ''
-    : tokenState.enteredXStepAmount.trim() !== '';
-
+    ? parseFloat(tokenState.enteredStepAmount.trim()) > 0
+    : parseFloat(tokenState.enteredXStepAmount.trim()) > 0;
+  
     const insufficientFunds = tokenState.stake
         ? parseFloat(tokenState.enteredStepAmount || '0') > stepData.balance
         : parseFloat(tokenState.enteredXStepAmount || '0') > xstepData.balance;
@@ -159,6 +148,7 @@ const Stake: React.FC = () => {
     function handleConfirm(){
         stake();
     }
+    
     return( 
         <div>
             <div className="flex items-center justify-left">
@@ -198,7 +188,7 @@ const Stake: React.FC = () => {
                     tokenData={tokenState.stake ? stepData : xstepData}
                     enteredAmount={tokenState.stake ? tokenState.enteredStepAmount : tokenState.enteredXStepAmount}
                     onAmountChange={tokenState.stake ? handleStepAmountChange : handleXStepAmountChange}
-                    price={tokenState.stake ? tokenState.stepPrice : tokenState.xstepPrice}
+                    amount={tokenState.stake ? stepData.balance : xstepData.balance}
                 />
                 <div className="mx-auto py-6">
                     <Image
@@ -217,7 +207,7 @@ const Stake: React.FC = () => {
                     tokenData={!tokenState.stake ? stepData : xstepData}
                     enteredAmount={!tokenState.stake ? tokenState.enteredStepAmount : tokenState.enteredXStepAmount}
                     onAmountChange={!tokenState.stake ? handleStepAmountChange : handleXStepAmountChange}
-                    price={!tokenState.stake ? tokenState.stepPrice : tokenState.xstepPrice}
+                    amount={tokenState.stake ? stepData.balance*xStepRatio : xstepData.balance/xStepRatio}
                 />
             </div>
             <button

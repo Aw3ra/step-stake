@@ -6,16 +6,14 @@ interface Item {
     href: string;
 }
 
-interface FooterProps {
-    items: Item[];
-}
+interface FooterProps { items: Item[]; }
 
 const StepFooter: React.FC<FooterProps> = ({ items }) => {
     return(        
       <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left gap-2">
-          {items.map(({ name, description, href }, index) => ( // Added index here
+          {items.map(({ name, description, href }, index) => (
                   <a
-                      key={href} // Added key prop
+                      key={href}
                       href={href}
                       className="group rounded-2xl border border-transparent px-5 py-4 transition-colors hover:border-gray-900 hover:bg-gray-600"
                       target="_blank"
@@ -31,7 +29,6 @@ const StepFooter: React.FC<FooterProps> = ({ items }) => {
                           {description}
                       </p>
                   </a>
-  
           ))}
       </div>
       );

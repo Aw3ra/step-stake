@@ -23,18 +23,18 @@ const WalletNotifications: React.FC = () => {
   }, [connected, publicKey]);
 
   return <ToastContainer
-  position="top-left"
-  autoClose={4000}
-  hideProgressBar={true}
-  newestOnTop={true}
-  closeOnClick
-  rtl={false}
-  pauseOnFocusLoss
-  draggable
-  pauseOnHover
-  style={{ width: "auto" }} // Adjust the width as needed
-  toastClassName="!p-0 !min-h-0 !bg-transparent"
-/>;
+      position="top-left"
+      autoClose={4000}
+      hideProgressBar={true}
+      newestOnTop={true}
+      closeOnClick
+      rtl={false}
+      pauseOnFocusLoss
+      draggable
+      pauseOnHover
+      style={{ width: "auto" }}
+      toastClassName="!p-0 !min-h-0 !bg-transparent"
+    />;
 };
 
 export default WalletNotifications;
