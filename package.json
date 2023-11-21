@@ -17,6 +17,7 @@
     "@solana/wallet-adapter-wallets": "^0.19.23",
     "@solana/web3.js": "^1.87.6",
     "@types/react-toastify": "^4.1.0",
+    "i": "^0.3.7",
     "next": "14.0.3",
     "react": "^18",
     "react-dom": "^18",

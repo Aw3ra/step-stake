@@ -21,7 +21,7 @@ export const TokenInput: React.FC<TokenInputProps> = ({
     function max_button() {
         onAmountChange({
             target: {
-            value: (amount).toFixed(5).toString()
+            value: (amount).toString()
             }
         } as React.ChangeEvent<HTMLInputElement>);
     }
@@ -29,7 +29,7 @@ export const TokenInput: React.FC<TokenInputProps> = ({
     function half_button() {
         onAmountChange({
             target: {
-            value: (amount / 2).toFixed(5).toString()
+            value: (amount / 2).toString()
             }
         } as React.ChangeEvent<HTMLInputElement>);
     }

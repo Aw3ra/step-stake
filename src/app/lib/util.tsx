@@ -193,6 +193,23 @@ export async function initializeStep(program:Program, wallet: WalletContextState
         }     
 }
 
+export async function getxStepRatio(program:Program){
+    const [tokenVaultPda, nonce] = await PublicKey.findProgramAddress(
+        [tokenMint.toBuffer()],
+        program.programId
+    );
+    const ratio = await program.methods
+    .emitPrice()
+    .accounts({
+        tokenMint,
+        xTokenMint,
+        tokenVault:tokenVaultPda,
+    })
+    .rpc()
+
+    return ratio
+}
+
 async function createMint(
     mintAccount: PublicKey,
     program: Program,

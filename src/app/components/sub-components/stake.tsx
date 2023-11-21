@@ -4,7 +4,7 @@ import idl from "../../lib/step_staking.json"
 import { TokenInput } from './tokenInput';
 import { AnchorProvider, setProvider, Idl, Program} from '@project-serum/anchor'
 import { useWallet, useAnchorWallet, useConnection } from '@solana/wallet-adapter-react';
-import { find_tokens, get_token_price, stakeStep, unStakeStep} from '../../lib/util';
+import { find_tokens, get_token_price, stakeStep, unStakeStep, getxStepRatio} from '../../lib/util';
 import { PublicKey} from '@solana/web3.js';
 import { toast } from 'react-toastify';
 
@@ -36,7 +36,7 @@ const Stake: React.FC = () => {
             setProgram(program);
         }
       }, [wallet, connection]);
-    
+        
         function handleClick() {
             setTokenState(prevState => ({
                 ...prevState,

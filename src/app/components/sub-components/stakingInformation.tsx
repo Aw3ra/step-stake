@@ -11,7 +11,6 @@ const StepFooter: React.FC<information> = (information) => {
                 <Image
                     src={"/xstep.svg"}
                     alt="xstep image"
-                    className="dark:invert"
                     width={36}
                     height={16}
                     priority
